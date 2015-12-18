@@ -1,8 +1,9 @@
-#!/bin/sh
+#!/bin/dash
 
 #
 #
-#[NO] make do without ${OPTOPT:2} and ${OPTOPT:1},  for it is not compatible with dash
+#[OK](12/17-18/15) make do without ${OPTOPT:2} and ${OPTOPT:1},  for it is not compatible with dash
+#                  replaced with posix parameter expansion using pattern matching
 #
 #
 
@@ -18,14 +19,23 @@ OPTOPT="" #N INCREMENTS PER ITERATION OF A SHORT MULTIOPTION,  and,  OPTOPT="${1
 OPTNOT=   #POSITIONAL ARGUMENT
 OPTLNG=0  #$OPT IS LONG
 
+#
+#[NO](12/18/15) bash don't expand aliases.
+#
+#test "${SHELL##*/}" = "bash" && shopt -s expand_aliases
+
+#shopt -s expand_aliases
+
 #ARGUMENT handlerS
 alias getoptarg='if test $OPTLNG -eq 1 -o -z "$OPTOPT"; then shift; OPTARG="$1"; else OPTARG="$OPTOPT"; OPTOPT=""; fi; test -z "$OPTARG" && { echo "$OPT needs argument"; exit 1; }'
 
 #COMPACT VERSION
-alias getopt='while test "$1"; do if test -z "$OPTOPT"; then OPT= ; OPTLNG=0; OPTNOT= ; test -z "${1%%--*}" && { OPTLNG=1; OPT="$1"; } || { test -n "${1%%-*}" && OPTNOT="$1"; if test $? -ne 0; then OPTOPT="$1"; OPT="${OPTOPT%%${OPTOPT:2}}"; OPTOPT="${OPTOPT:2}"; fi; }; else OPT="-${OPTOPT%%${OPTOPT:1}}"; OPTOPT="${OPTOPT:1}"; fi;'
+alias getopt='while test "$1"; do if test -z "$OPTOPT"; then OPT=""; OPTLNG=0; OPTNOT=""; test -z "${1%%--*}" && { OPTLNG=1; OPT="$1"; } || { test -n "${1%%-*}" && OPTNOT="$1"; if test $? -ne 0; then OPTOPT="$1"; OPT="${OPTOPT%%"${OPTOPT#??}"}"; OPTOPT="${OPTOPT#??}"; fi; }; else OPT="-${OPTOPT%%"${OPTOPT#?}"}"; OPTOPT="${OPTOPT#?}"; fi'
 alias gotopt='test -z "$OPTOPT" && shift; done'
+#alias getopt='while test "$1"; do if test -z "$OPTOPT"; then OPT= ; OPTLNG=0; OPTNOT= ; test -z "${1%%--*}" && { OPTLNG=1; OPT="$1"; } || { test -n "${1%%-*}" && OPTNOT="$1"; if test $? -ne 0; then OPTOPT="$1"; OPT="${OPTOPT%%${OPTOPT:2}}"; OPTOPT="${OPTOPT:2}"; fi; }; else OPT="-${OPTOPT%%${OPTOPT:1}}"; OPTOPT="${OPTOPT:1}"; fi;'
+#alias gotopt='test -z "$OPTOPT" && shift; done'
 
-#EXAMPLE,  RUN THIS SCRIPT;  $ ./script -qv -rFILE -vrFILE -r FILE --reply FILE -r
+#EXAMPLE,  RUN THIS SCRIPT;  $ ./sh-gotopt -qv -rFILE -vrFILE -r FILE --reply FILE -r
 getopt
   case "$OPT" in
     -r|--reply)
@@ -49,8 +59,8 @@ getopt
   esac
 gotopt
 
-#READABLE VERSION
-#alias getopt='
+##READABLE VERSION
+##alias getopt='
 #while test "$1"
 #do
 #  if test -z "$OPTOPT"
@@ -69,8 +79,26 @@ gotopt
 #      if test $? -ne 0
 #      then
 #        OPTOPT="$1"
-#        OPT="${OPTOPT%%${OPTOPT:2}}"
-#        OPTOPT="${OPTOPT:2}"
+#        #RETRIEVE THE FIRST OPTION CHARACTER,  USING,  PARAMETER EXPANSION and POSIX PATTERN MATCHING
+#        #OPT="${OPTOPT%%${OPTOPT:2}}" #USING NON-POSIX ${string:index}
+#        #
+#        #[NO](12/18/15) ...
+#        ##either there is a bug in dash,  or,  line 2,  is not posix compatible:
+#        #STR="/*k"
+#        #echo "${STR%%${STR#??}}"   #dash gives nul string,  ash and bash gives, "/*"
+#        #C=${STR#??}
+#        #echo "${STR%%$C}"          #dash, ash, and, bash, gives, "/*"
+#        #echo "${STR%%"${STR#??}"}" #dash, ash, and, bash, gives, "/*"
+#        ##..don't know which version my dash is
+#        #
+#        OPT="${OPTOPT%%"${OPTOPT#??}"}"
+#        #echo ${OPTOPT#??}
+#        #exit 1
+#        #OPTOPT MUST CONTAIN THE REMAINDER OF "$1",  AFTER OPT WAS ASSIGNED
+#        #OPTOPT="${OPTOPT:2}" #USING NON-POSIX ${string:index}
+#        OPTOPT="${OPTOPT#??}"
+#        #echo "$OPT"
+#        #exit 1
 #
 #        #echo OPTOPT: $OPTOPT
 #        #echo OPT:'   ' $OPT
@@ -82,11 +110,23 @@ gotopt
 #      #exit 1
 #    }
 #  else
-#    OPT="-${OPTOPT%%${OPTOPT:1}}"
-#    OPTOPT="${OPTOPT:1}"
-#  fi'
+#    #RETRIEVE THE SUBSEQUENT OPTION CHARACTER,  USING,  PARAMETER EXPANSION and POSIX PATTERN MATCHING
+#    #OPT="-${OPTOPT%%${OPTOPT:1}}"
+#    OPT="-${OPTOPT%%"${OPTOPT#?}"}"
+#    #OPTOPT MUST CONTAIN THE REMAINDER OF "$1",  AFTER OPT WAS ASSIGNED
+#    #OPTOPT="${OPTOPT:1}"
+#    OPTOPT="${OPTOPT#?}"
+#  fi
+##'
 #
 #  case "$OPT" in
+#    -r|--reply)
+#      eval $getoptarg
+#      echo $OPT got $OPTARG
+#      ;;
+#    -q|--quiet)
+#      echo quiet on
+#      ;;
 #    -*)
 #      echo "$OPT option is nowhere"
 #      exit 1
@@ -96,7 +136,7 @@ gotopt
 #      ;;
 #  esac
 #
-#alias gotopt='
+##alias gotopt='
 #  test -z "$OPTOPT" && shift
-#done'
-
+#done
+##'
