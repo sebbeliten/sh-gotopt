@@ -1,0 +1,102 @@
+#!/bin/sh
+
+#
+#
+#[NO] make do without ${OPTOPT:2} and ${OPTOPT:1},  for it is not compatible with dash
+#
+#
+
+#
+#$1 = "--.+" #LONG OPTION
+#$1 = "-."   #ONE SHORT OPTION
+#$1 = "-.+"  #ONE SHORT OPTION,  FOLLOWED BY A CONNECTED ARGUMENT
+#$1 = "-.+"  #SEVERAL SINGLE SHORT optionS,  POSSIBLY CONTAINING A CONNECTED ARGUMENT
+#
+
+OPT=""    #A SINGLE ABSOLUTE OPTION PER ITERATION
+OPTOPT="" #N INCREMENTS PER ITERATION OF A SHORT MULTIOPTION,  and,  OPTOPT="${1:N}"
+OPTNOT=   #POSITIONAL ARGUMENT
+OPTLNG=0  #$OPT IS LONG
+
+#ARGUMENT handlerS
+alias getoptarg='if test $OPTLNG -eq 1 -o -z "$OPTOPT"; then shift; OPTARG="$1"; else OPTARG="$OPTOPT"; OPTOPT=""; fi; test -z "$OPTARG" && { echo "$OPT needs argument"; exit 1; }'
+
+#COMPACT VERSION
+alias getopt='while test "$1"; do if test -z "$OPTOPT"; then OPT= ; OPTLNG=0; OPTNOT= ; test -z "${1%%--*}" && { OPTLNG=1; OPT="$1"; } || { test -n "${1%%-*}" && OPTNOT="$1"; if test $? -ne 0; then OPTOPT="$1"; OPT="${OPTOPT%%${OPTOPT:2}}"; OPTOPT="${OPTOPT:2}"; fi; }; else OPT="-${OPTOPT%%${OPTOPT:1}}"; OPTOPT="${OPTOPT:1}"; fi;'
+alias gotopt='test -z "$OPTOPT" && shift; done'
+
+#EXAMPLE,  RUN THIS SCRIPT;  $ ./script -qv -rFILE -vrFILE -r FILE --reply FILE -r
+getopt
+  case "$OPT" in
+    -r|--reply)
+      getoptarg
+      echo OPT:'   ' $OPT
+      echo OPTARG: $OPTARG
+      ;;
+    -q|--quiet)
+      echo $OPT
+      ;;
+    -v|--verbose)
+      echo verbose on
+      ;;
+    -*)
+      echo "$OPT option is nowhere"
+      exit 1
+      ;;
+    *)
+      echo OPTNOT: $OPTNOT
+      ;;
+  esac
+gotopt
+
+#READABLE VERSION
+#alias getopt='
+#while test "$1"
+#do
+#  if test -z "$OPTOPT"
+#  then
+#    OPT=
+#    OPTLNG=0
+#    OPTNOT=
+#    #LONG
+#    test -z "${1%%--*}" \
+#      && { OPTLNG=1; OPT="$1"; } \
+#    || {
+#      #POSITIONAL
+#      test -n "${1%%-*}" \
+#        && OPTNOT="$1"
+#      #SHORT
+#      if test $? -ne 0
+#      then
+#        OPTOPT="$1"
+#        OPT="${OPTOPT%%${OPTOPT:2}}"
+#        OPTOPT="${OPTOPT:2}"
+#
+#        #echo OPTOPT: $OPTOPT
+#        #echo OPT:'   ' $OPT
+#        #exit 1
+#        #OPT="${OPTOPT:}"
+#      fi
+#      #echo OPTLNG: $OPTLNG
+#      #echo OPTNOT: $OPTNOT
+#      #exit 1
+#    }
+#  else
+#    OPT="-${OPTOPT%%${OPTOPT:1}}"
+#    OPTOPT="${OPTOPT:1}"
+#  fi'
+#
+#  case "$OPT" in
+#    -*)
+#      echo "$OPT option is nowhere"
+#      exit 1
+#      ;;
+#    *)
+#      echo OPTNOT: $OPTNOT
+#      ;;
+#  esac
+#
+#alias gotopt='
+#  test -z "$OPTOPT" && shift
+#done'
+
